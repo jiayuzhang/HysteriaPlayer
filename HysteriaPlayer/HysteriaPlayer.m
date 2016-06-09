@@ -14,6 +14,7 @@
 #endif
 
 static const void *Hysteriatag = &Hysteriatag;
+static const void *Hysteriatag2 = &Hysteriatag2;
 
 typedef NS_ENUM(NSInteger, PauseReason) {
     PauseReasonNone,
@@ -212,6 +213,11 @@ static dispatch_once_t onceToken;
     return objc_getAssociatedObject(item, Hysteriatag);
 }
 
+- (id)getHysteriaAssociatedObj:(AVPlayerItem *)item {
+    return objc_getAssociatedObject(item, Hysteriatag2);
+}
+
+
 #pragma mark -
 #pragma mark ===========  AVAudioSession Notifications  =========
 #pragma mark -
@@ -289,11 +295,11 @@ static dispatch_once_t onceToken;
 
 - (void)getSourceURLAtIndex:(NSInteger)index preBuffer:(BOOL)preBuffer
 {
-    NSAssert([self.datasource respondsToSelector:@selector(hysteriaPlayerURLForItemAtIndex:preBuffer:)] || [self.datasource respondsToSelector:@selector(hysteriaPlayerAsyncSetUrlForItemAtIndex:preBuffer:)], @"You didn't implement URL getter delegate from HysteriaPlayerDelegate, hysteriaPlayerURLForItemAtIndex:preBuffer: and hysteriaPlayerAsyncSetUrlForItemAtIndex:preBuffer: provides for the use of alternatives.");
+    NSAssert([self.datasource respondsToSelector:@selector(hysteriaPlayerURLForItemAtIndex2:preBuffer:)] || [self.datasource respondsToSelector:@selector(hysteriaPlayerURLForItemAtIndex:preBuffer:)] || [self.datasource respondsToSelector:@selector(hysteriaPlayerAsyncSetUrlForItemAtIndex:preBuffer:)], @"You didn't implement URL getter delegate from HysteriaPlayerDelegate, hysteriaPlayerURLForItemAtIndex:preBuffer: and hysteriaPlayerAsyncSetUrlForItemAtIndex:preBuffer: provides for the use of alternatives.");
     NSAssert([self hysteriaPlayerItemsCount] > index, ([NSString stringWithFormat:@"You are about to access index: %li URL when your HysteriaPlayer items count value is %li, please check hysteriaPlayerNumberOfItems or set itemsCount directly.", (unsigned long)index, (unsigned long)[self hysteriaPlayerItemsCount]]));
-    if ([self.datasource respondsToSelector:@selector(hysteriaPlayerURLForItemAtIndex:preBuffer:)] && [self.datasource hysteriaPlayerURLForItemAtIndex:index preBuffer:preBuffer]) {
+    if ([self.datasource respondsToSelector:@selector(hysteriaPlayerURLForItemAtIndex2:preBuffer:)] && [self.datasource hysteriaPlayerURLForItemAtIndex2:index preBuffer:preBuffer]) {
         dispatch_async(HBGQueue, ^{
-            [self setupPlayerItemWithUrl:[self.datasource hysteriaPlayerURLForItemAtIndex:index preBuffer:preBuffer] index:index];
+            [self setupPlayerItemWithUrl2:[self.datasource hysteriaPlayerURLForItemAtIndex2:index preBuffer:preBuffer] index:index];
         });
     } else if ([self.datasource respondsToSelector:@selector(hysteriaPlayerAsyncSetUrlForItemAtIndex:preBuffer:)]) {
         [self.datasource hysteriaPlayerAsyncSetUrlForItemAtIndex:index preBuffer:preBuffer];
@@ -311,6 +317,25 @@ static dispatch_once_t onceToken;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         [self setHysteriaIndex:item key:[NSNumber numberWithInteger:index]];
+        if (self.isMemoryCached) {
+            NSMutableArray *playerItems = [NSMutableArray arrayWithArray:self.playerItems];
+            [playerItems addObject:item];
+            self.playerItems = playerItems;
+        }
+        [self insertPlayerItem:item];
+    });
+}
+
+- (void)setupPlayerItemWithUrl2:(NSArray *)ary index:(NSInteger)index
+{
+    NSURL *url = ary[0];
+    AVPlayerItem *item = [AVPlayerItem playerItemWithURL:url];
+    if (!item)
+        return;
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self setHysteriaIndex:item key:[NSNumber numberWithInteger:index]];
+        objc_setAssociatedObject(item, Hysteriatag2, ary[1], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         if (self.isMemoryCached) {
             NSMutableArray *playerItems = [NSMutableArray arrayWithArray:self.playerItems];
             [playerItems addObject:item];
@@ -760,10 +785,14 @@ static dispatch_once_t onceToken;
             [newPlayerItem addObserver:self forKeyPath:@"loadedTimeRanges" options:NSKeyValueObservingOptionNew context:nil];
             [newPlayerItem addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
             
-            if ([self.delegate respondsToSelector:@selector(hysteriaPlayerCurrentItemChanged:)]) {
-                [self.delegate hysteriaPlayerCurrentItemChanged:newPlayerItem];
-            }
+            // if ([self.delegate respondsToSelector:@selector(hysteriaPlayerCurrentItemChanged:)]) {
+            //     [self.delegate hysteriaPlayerCurrentItemChanged:newPlayerItem];
+            // }
             self.emptySoundPlaying = NO;
+        }
+
+        if ([self.delegate respondsToSelector:@selector(hysteriaPlayerCurrentItemChanged2:curItem:)]) {
+            [self.delegate hysteriaPlayerCurrentItemChanged2:lastPlayerItem curItem:newPlayerItem];
         }
     }
     

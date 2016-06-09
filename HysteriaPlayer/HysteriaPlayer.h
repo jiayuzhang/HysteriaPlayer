@@ -47,6 +47,7 @@ typedef NS_ENUM(NSInteger, HysteriaPlayerFailed) {
 @optional
 - (void)hysteriaPlayerWillChangedAtIndex:(NSInteger)index;
 - (void)hysteriaPlayerCurrentItemChanged:(AVPlayerItem *)item;
+- (void)hysteriaPlayerCurrentItemChanged2:(AVPlayerItem *)lastItem curItem:(AVPlayerItem *)curItem;
 - (void)hysteriaPlayerRateChanged:(BOOL)isPlaying;
 - (void)hysteriaPlayerDidReachEnd;
 - (void)hysteriaPlayerCurrentItemPreloaded:(CMTime)time;
@@ -78,6 +79,13 @@ typedef NS_ENUM(NSInteger, HysteriaPlayerFailed) {
  *  @return source URL
  */
 - (NSURL *)hysteriaPlayerURLForItemAtIndex:(NSInteger)index preBuffer:(BOOL)preBuffer;
+
+/**
+ *  ColonyFM customized source URL provider
+ *
+ *  @return array of two items, first is source URL, second is an obj associated with created AVPlayerItem
+ */
+- (NSArray *)hysteriaPlayerURLForItemAtIndex2:(NSInteger)index preBuffer:(BOOL)PreBuffer;
 
 /**
  *  Source URL provider, would excute until you call setupPlayerItemWithUrl:index:
@@ -197,6 +205,8 @@ typedef NS_ENUM(NSInteger, HysteriaPlayerShuffleMode) {
  *  @return index of the item
  */
 - (NSNumber *)getHysteriaIndex:(AVPlayerItem *)item;
+
+- (id)getHysteriaAssociatedObj:(AVPlayerItem *)item;
 
 - (void)deprecatePlayer;
 
